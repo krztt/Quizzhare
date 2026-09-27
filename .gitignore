@@ -1,0 +1,42 @@
+# =========================
+# Python & Virtual Environments
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# =========================
+# Database
+# =========================
+# Ignores your local SQLite database so user data stays on the device
+*.db
+*.sqlite3
+local_reviewer.db
+
+# =========================
+# App-Specific User Data
+# =========================
+# Ignores the PDFs and .revx files generated or imported during testing
+assets/exports/*.revx
+assets/reviewers/*.pdf
+assets/reviewers/*.json
+
+# =========================
+# Flet Build Outputs
+# =========================
+# Ignores compiled executables when you run 'flet build'
+build/
+dist/
+*.spec
+
+# =========================
+# IDEs & Operating Systems
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

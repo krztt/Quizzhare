@@ -1,0 +1,18 @@
+{
+  "title": "Demo",
+  "sections": [
+    {
+      "heading": "Page 1",
+      "content": [
+        "Alpha",
+        "Beta"
+      ],
+      "notes": {
+        "2": "Check this line"
+      },
+      "highlights": [
+        "2"
+      ]
+    }
+  ]
+}
