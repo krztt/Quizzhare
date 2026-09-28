@@ -25,6 +25,16 @@ def annotation_key_for_text(text: str) -> str:
     return normalized.strip()
 
 
+def python_index_from_utf16_offset(text: str, offset: int) -> int:
+	"""Convert a Flutter UTF-16 selection offset to a Python string index."""
+	consumed = 0
+	for index, character in enumerate(text):
+		if consumed >= offset:
+			return index
+		consumed += 2 if ord(character) > 0xFFFF else 1
+	return len(text)
+
+
 def normalize_annotation_map(values: dict[str, str] | Any, content: list[str] | None = None) -> dict[str, str]:
     """Convert numeric review keys to the visible text they annotate."""
     if not isinstance(values, dict):
@@ -47,6 +57,7 @@ class DocumentSection:
 	content: list[str]
 	notes: dict[str, str] = field(default_factory=dict)
 	highlights: set[str] = field(default_factory=set)
+	highlight_ranges: dict[str, list[tuple[int, int]]] = field(default_factory=dict)
 
 
 @dataclass
@@ -139,7 +150,33 @@ def _parse_json_document(path: Path) -> ParsedDocument:
 					annotation_key_for_text(content[int(item)-1]) if item.isdigit() and 0 < int(item) <= len(content) else annotation_key_for_text(str(item))
 					for item in highlights
 				}
-			sections.append(DocumentSection(heading, content or ["Empty section"], notes=notes, highlights=highlights))
+			highlight_ranges = {}
+			raw_highlight_ranges = section_data.get("highlight_ranges")
+			if not isinstance(raw_highlight_ranges, dict):
+				raw_highlight_ranges = {}
+			for raw_line_number, raw_ranges in raw_highlight_ranges.items():
+				if not str(raw_line_number).isdigit():
+					continue
+				line_number = int(raw_line_number)
+				if not 0 < line_number <= len(content) or not isinstance(raw_ranges, list):
+					continue
+				line = content[line_number - 1]
+				valid_ranges = []
+				for raw_range in raw_ranges:
+					if not isinstance(raw_range, list) or len(raw_range) != 2:
+						continue
+					start, end = raw_range
+					if type(start) is int and type(end) is int and 0 <= start < end <= len(line):
+						valid_ranges.append((start, end))
+				if valid_ranges:
+					highlight_ranges[str(line_number)] = valid_ranges
+			sections.append(DocumentSection(
+				heading,
+				content or ["Empty section"],
+				notes=notes,
+				highlights=highlights,
+				highlight_ranges=highlight_ranges,
+			))
 		if not sections:
 			sections = [DocumentSection("Content", ["Empty reviewer"])]
 
@@ -202,6 +239,10 @@ def build_reviewer_payload(document: ParsedDocument) -> dict:
 			"content": section.content,
 			"notes": section.notes,
 			"highlights": sorted(section.highlights),
+			"highlight_ranges": {
+				line_number: [list(text_range) for text_range in ranges]
+				for line_number, ranges in section.highlight_ranges.items()
+			},
 		})
 	return {"title": document.title, "sections": sections}
 
