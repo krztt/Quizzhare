@@ -20,8 +20,8 @@ local_reviewer.db
 # =========================
 # App-Specific User Data
 # =========================
-# Ignores the PDFs and .revx files generated or imported during testing
-assets/exports/*.revx
+# Ignores generated quiz exports
+assets/exports/
 assets/reviewers/*.pdf
 assets/reviewers/*.json
 

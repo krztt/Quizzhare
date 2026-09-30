@@ -20,10 +20,12 @@ def main(page: ft.Page):
 
 	score = [0]
 	current = [0]
+	submitted = [False]
 	result = ft.Text()
 	question_area = ft.Column(spacing=14)
 
 	def render_question():
+		submitted[0] = False
 		question = quiz["questions"][current[0]]
 		if question.get("type", "multiple_choice") == "identification":
 			answer_control = ft.TextField(label="Your answer")
@@ -31,21 +33,30 @@ def main(page: ft.Page):
 			answer_control = ft.RadioGroup(
 				content=ft.Column([ft.Radio(value=option, label=option) for option in question["options"]])
 			)
+		submit_button = ft.FilledButton(
+			"Submit answer",
+			icon=ft.Icons.CHECK,
+			on_click=lambda _: submit(answer_control, submit_button),
+		)
 		question_area.controls = [
 			ft.Text(f"Question {current[0] + 1} of {len(quiz['questions'])}", color=ft.Colors.GREY_400),
 			ft.Text(question["question"], size=22, weight=ft.FontWeight.BOLD),
 			answer_control,
-			ft.FilledButton("Submit answer", icon=ft.Icons.CHECK, on_click=lambda _: submit(answer_control)),
+			submit_button,
 			result,
 		]
 		page.update()
 
-	def submit(options):
+	def submit(options, submit_button):
+		if submitted[0]:
+			return
 		answer = (options.value or "").strip()
 		if not answer:
 			result.value = "Choose an answer first."
 			page.update()
 			return
+		submitted[0] = True
+		submit_button.disabled = True
 		question = quiz["questions"][current[0]]
 		if answer.casefold() == question["answer"].strip().casefold():
 			score[0] += 1

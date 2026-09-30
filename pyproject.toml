@@ -1,0 +1,4 @@
+[tool.flet.app]
+name = "Quizzhare"
+description = "Offline peer-to-peer reviewer"
+version = "1.0.0"

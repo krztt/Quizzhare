@@ -48,7 +48,7 @@ def main(page: ft.Page):
                     option_field.value = ""
             page.update()
 
-        type_field.on_change = change_type
+        type_field.on_select = change_type
         row = ft.Container(
             content=ft.Column([
                 ft.Row([

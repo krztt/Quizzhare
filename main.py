@@ -193,19 +193,19 @@ def main(page: ft.Page):
             border_radius=8,
         )
 
-        def change_type(_):
-            options_row.visible = type_field.value == "multiple_choice"
+        def change_type(event):
+            options_row.visible = event.control.value == "multiple_choice"
             if not options_row.visible:
                 for option_field in option_fields:
                     option_field.value = ""
-            page.update()
+            options_row.update()
 
         def remove_question(_):
             quiz_question_rows.controls.remove(row)
             quiz_question_fields.remove(question_data)
             page.update()
 
-        type_field.on_change = change_type
+        type_field.on_select = change_type
         row.content.controls[0].controls[-1].on_click = remove_question
         question_data = {
             "question": question_field,

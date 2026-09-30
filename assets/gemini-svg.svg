@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- App Icon Background -->
+  <rect width="512" height="512" rx="112" fill="#1E3A8A"/>
+  
+  <!-- Rabbit Ears -->
+  <path d="M 190 180 C 170 60, 230 60, 256 160 C 282 60, 342 60, 322 180" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+  
+  <!-- The 'Q' Body -->
+  <circle cx="256" cy="270" r="90" fill="none" stroke="#FFFFFF" stroke-width="36"/>
+  
+  <!-- The 'Q' Tail / Sync Arrow -->
+  <path d="M 315 335 L 375 395" fill="none" stroke="#4ADE80" stroke-width="36" stroke-linecap="round"/>
+  <path d="M 375 395 L 335 400 M 375 395 L 370 355" fill="none" stroke="#4ADE80" stroke-width="36" stroke-linecap="round"/>
+</svg>
