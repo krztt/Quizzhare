@@ -1,0 +1,10 @@
+{
+  "title": "AO-ALL-Quizzes",
+  "questions": [
+    {
+      "type": "identification",
+      "question": "What is the binary representation for hexadecimal AC?",
+      "answer": "10101100"
+    }
+  ]
+}

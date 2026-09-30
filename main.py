@@ -20,6 +20,7 @@ def main(page: ft.Page):
 
     active_course_id = [None]
     status_text = ft.Text("Ready.", color=ft.Colors.GREY_400, size=12)
+    import_actions = ft.Column(visible=False, spacing=8)
     page_heading = ft.Text("My Courses", size=28, weight=ft.FontWeight.W_800)
     course_grid = ft.GridView(height=520, runs_count=5, max_extent=280, child_aspect_ratio=1.6, spacing=20, run_spacing=20)
     file_picker = ft.FilePicker()
@@ -39,6 +40,7 @@ def main(page: ft.Page):
 
     def select_course(course_id, course_title):
         active_course_id[0] = course_id
+        import_actions.visible = True
         page_heading.value = course_title
         course_actions.visible = True
         course_form.visible = False
@@ -175,7 +177,10 @@ def main(page: ft.Page):
             width=180,
         )
         option_fields = [ft.TextField(label=f"Option {index}", expand=True) for index in range(1, 5)]
-        options_row = ft.Row(option_fields)
+        options_row = ft.Row(
+            option_fields,
+            visible=type_field.value == "multiple_choice",
+        )
         answer_field = ft.TextField(label="Correct answer", expand=True)
         row = ft.Container(
             content=ft.Column([
@@ -190,6 +195,9 @@ def main(page: ft.Page):
 
         def change_type(_):
             options_row.visible = type_field.value == "multiple_choice"
+            if not options_row.visible:
+                for option_field in option_fields:
+                    option_field.value = ""
             page.update()
 
         def remove_question(_):
@@ -315,11 +323,13 @@ def main(page: ft.Page):
     course_form.controls = [course_name_field, ft.FilledButton("Add", icon=ft.Icons.CHECK, on_click=add_new_course), ft.TextButton("Cancel", on_click=lambda _: close_course_form())]
 
     async def import_file(_):
+        if active_course_id[0] is None:
+            status_text.value = "Create or select a course before importing material."
+            page.update()
+            return
         files = await file_picker.pick_files(allow_multiple=False, file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=["revx", "json", "pdf"])
         if not files:
             status_text.value = "Import cancelled."
-        elif active_course_id[0] is None:
-            status_text.value = "Create or select a course before importing material."
         else:
             try:
                 document = parse_document(files[0].path)
@@ -331,11 +341,13 @@ def main(page: ft.Page):
         page.update()
 
     async def import_quiz(_):
+        if active_course_id[0] is None:
+            status_text.value = "Create or select a course before importing a quiz."
+            page.update()
+            return
         files = await file_picker.pick_files(allow_multiple=False, file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=["json", "revx"])
         if not files:
             status_text.value = "Quiz import cancelled."
-        elif active_course_id[0] is None:
-            status_text.value = "Create or select a course before importing a quiz."
         else:
             try:
                 quiz = parse_quiz(files[0].path)
@@ -348,6 +360,7 @@ def main(page: ft.Page):
 
     def show_courses(_=None):
         active_course_id[0] = None
+        import_actions.visible = False
         page_heading.value = "My Courses"
         course_actions.visible = False
         course_form.visible = False
@@ -358,6 +371,7 @@ def main(page: ft.Page):
 
     def show_recent(_=None):
         active_course_id[0] = None
+        import_actions.visible = False
         page_heading.value = "Recent Materials"
         course_actions.visible = False
         reviewer_maker_panel.visible = False
@@ -368,6 +382,7 @@ def main(page: ft.Page):
 
     def show_shared(_=None):
         active_course_id[0] = None
+        import_actions.visible = False
         page_heading.value = "Shared with Me"
         course_actions.visible = False
         reviewer_maker_panel.visible = False
@@ -378,6 +393,7 @@ def main(page: ft.Page):
 
     def open_course_form(_):
         active_course_id[0] = None
+        import_actions.visible = False
         page_heading.value = "My Courses"
         course_actions.visible = False
         reviewer_maker_panel.visible = False
@@ -396,6 +412,12 @@ def main(page: ft.Page):
         ft.FilledButton("Create Reviewer", icon=ft.Icons.EDIT_DOCUMENT, on_click=open_reviewer_maker),
     ], visible=False)
 
+    import_actions.controls = [
+        ft.FilledButton("Import Material", icon=ft.Icons.DOWNLOAD, on_click=import_file),
+        ft.FilledButton("Import Quiz", icon=ft.Icons.QUIZ, on_click=import_quiz),
+    ]
+    import_actions.spacing = 8
+
     sidebar = ft.Container(content=ft.Column([
         ft.Text("P2P Reviewer", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_200),
         ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
@@ -404,8 +426,7 @@ def main(page: ft.Page):
         ft.TextButton("Recent Materials", icon=ft.Icons.HISTORY, on_click=show_recent),
         ft.TextButton("Shared with Me", icon=ft.Icons.PEOPLE, on_click=show_shared),
         ft.Divider(height=20, color=ft.Colors.GREY_800),
-        ft.FilledButton("Import Material", icon=ft.Icons.DOWNLOAD, on_click=import_file),
-        ft.FilledButton("Import Quiz", icon=ft.Icons.QUIZ, on_click=import_quiz),
+        import_actions,
         status_text,
     ]), width=250, bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, padding=20)
 
