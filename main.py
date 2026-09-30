@@ -11,7 +11,7 @@ from file_handler import DocumentSection, ParsedDocument, parse_document, parse_
 
 
 def main(page: ft.Page):
-    page.title = "Peer-to-Peer Reviewer"
+    page.title = "Quizzhare"
     page.theme_mode = ft.ThemeMode.DARK
     page.window.width = 1200
     page.window.height = 800
@@ -22,7 +22,7 @@ def main(page: ft.Page):
     status_text = ft.Text("Ready.", color=ft.Colors.GREY_400, size=12)
     import_actions = ft.Column(visible=False, spacing=8)
     page_heading = ft.Text("My Courses", size=28, weight=ft.FontWeight.W_800)
-    course_grid = ft.GridView(height=520, runs_count=5, max_extent=280, child_aspect_ratio=1.6, spacing=20, run_spacing=20)
+    course_grid = ft.GridView(max_extent=280, child_aspect_ratio=1.45, spacing=12, run_spacing=12, expand=True)
     file_picker = ft.FilePicker()
 
     def launch_viewer(file_path, material_type):
@@ -59,7 +59,7 @@ def main(page: ft.Page):
                 ft.Text(course_title, size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                 ft.Text(f"{len(get_materials(course_id))} material(s)", size=12, color=ft.Colors.WHITE70),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            width=260, height=160, bgcolor=ft.Colors.BLUE_700, border_radius=12, padding=15, ink=True,
+            height=150, bgcolor=ft.Colors.BLUE_700, border_radius=8, padding=12, ink=True, expand=True,
             on_click=lambda _, cid=course_id, title=course_title: select_course(cid, title),
         )
 
@@ -70,7 +70,7 @@ def main(page: ft.Page):
         page.update()
 
     course_name_field = ft.TextField(label="Course name", dense=True, expand=True)
-    course_form = ft.Row(visible=False)
+    course_form = ft.ResponsiveRow(visible=False, spacing=8, run_spacing=8)
     reviewer_title_field = ft.TextField(label="Reviewer title", autofocus=True)
     reviewer_sections = ft.Column(spacing=12, scroll=ft.ScrollMode.AUTO, expand=True)
     reviewer_section_fields = []
@@ -177,14 +177,24 @@ def main(page: ft.Page):
             width=180,
         )
         option_fields = [ft.TextField(label=f"Option {index}", expand=True) for index in range(1, 5)]
-        options_row = ft.Row(
-            option_fields,
+        options_row = ft.ResponsiveRow(
+            [
+                ft.Container(content=field, col={"xs": 12, "sm": 6, "lg": 3})
+                for field in option_fields
+            ],
             visible=type_field.value == "multiple_choice",
+            spacing=8,
+            run_spacing=8,
         )
         answer_field = ft.TextField(label="Correct answer", expand=True)
+        delete_button = ft.IconButton(ft.Icons.DELETE, tooltip="Remove question")
         row = ft.Container(
             content=ft.Column([
-                ft.Row([type_field, question_field, ft.IconButton(ft.Icons.DELETE, tooltip="Remove question")]),
+                ft.ResponsiveRow([
+                    ft.Container(content=type_field, col={"xs": 12, "sm": 4}),
+                    ft.Container(content=question_field, col={"xs": 10, "sm": 7}),
+                    ft.Container(content=delete_button, col={"xs": 2, "sm": 1}),
+                ], spacing=8, run_spacing=8),
                 options_row,
                 answer_field,
             ], spacing=8),
@@ -206,7 +216,7 @@ def main(page: ft.Page):
             page.update()
 
         type_field.on_select = change_type
-        row.content.controls[0].controls[-1].on_click = remove_question
+        delete_button.on_click = remove_question
         question_data = {
             "question": question_field,
             "type": type_field,
@@ -292,13 +302,13 @@ def main(page: ft.Page):
         ft.Row([
             ft.Text("Questions", size=18, weight=ft.FontWeight.BOLD),
             ft.TextButton("Add question", icon=ft.Icons.ADD, on_click=add_quiz_question),
-        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
         quiz_question_rows,
         quiz_status,
         ft.Row([
             ft.FilledButton("Save Quiz", icon=ft.Icons.SAVE, on_click=save_new_quiz),
             ft.TextButton("Cancel", on_click=close_quiz_maker),
-        ]),
+        ], wrap=True),
     ]
 
     def close_course_form():
@@ -320,7 +330,11 @@ def main(page: ft.Page):
             return
         page.update()
 
-    course_form.controls = [course_name_field, ft.FilledButton("Add", icon=ft.Icons.CHECK, on_click=add_new_course), ft.TextButton("Cancel", on_click=lambda _: close_course_form())]
+    course_form.controls = [
+        ft.Container(content=course_name_field, col={"xs": 12, "md": 8}),
+        ft.Container(content=ft.FilledButton("Add", icon=ft.Icons.CHECK, on_click=add_new_course), col={"xs": 6, "md": 2}),
+        ft.Container(content=ft.TextButton("Cancel", on_click=lambda _: close_course_form()), col={"xs": 6, "md": 2}),
+    ]
 
     async def import_file(_):
         if active_course_id[0] is None:
@@ -410,33 +424,52 @@ def main(page: ft.Page):
         ft.FilledButton("New Course", icon=ft.Icons.ADD, on_click=open_course_form),
         ft.FilledButton("Add Quiz", icon=ft.Icons.QUIZ, on_click=open_quiz_form),
         ft.FilledButton("Create Reviewer", icon=ft.Icons.EDIT_DOCUMENT, on_click=open_reviewer_maker),
-    ], visible=False)
+    ], visible=False, wrap=True, spacing=8)
 
-    import_actions.controls = [
-        ft.FilledButton("Import Material", icon=ft.Icons.DOWNLOAD, on_click=import_file),
-        ft.FilledButton("Import Quiz", icon=ft.Icons.QUIZ, on_click=import_quiz),
-    ]
-    import_actions.spacing = 8
+    import_actions = ft.ResponsiveRow([
+        ft.Container(content=ft.FilledButton("Import Material", icon=ft.Icons.DOWNLOAD, on_click=import_file), col={"xs": 6, "md": 12}),
+        ft.Container(content=ft.FilledButton("Import Quiz", icon=ft.Icons.QUIZ, on_click=import_quiz), col={"xs": 6, "md": 12}),
+    ], visible=False, spacing=6, run_spacing=6)
 
-    sidebar = ft.Container(content=ft.Column([
-        ft.Text("P2P Reviewer", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_200),
-        ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
-        ft.TextButton("My Courses", icon=ft.Icons.FOLDER_SPECIAL, on_click=show_courses),
-        ft.TextButton("Create course", icon=ft.Icons.ADD, on_click=open_course_form),
-        ft.TextButton("Recent Materials", icon=ft.Icons.HISTORY, on_click=show_recent),
-        ft.TextButton("Shared with Me", icon=ft.Icons.PEOPLE, on_click=show_shared),
-        ft.Divider(height=20, color=ft.Colors.GREY_800),
-        import_actions,
-        status_text,
-    ]), width=250, bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, padding=20)
+    sidebar = ft.Container(
+        content=ft.ResponsiveRow([
+            ft.Container(
+                content=ft.Text("Quizzhare", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_200),
+                col={"xs": 12},
+            ),
+            ft.TextButton("My Courses", icon=ft.Icons.FOLDER_SPECIAL, on_click=show_courses, col={"xs": 6, "md": 12}),
+            ft.TextButton("Create course", icon=ft.Icons.ADD, on_click=open_course_form, col={"xs": 6, "md": 12}),
+            ft.TextButton("Recent Materials", icon=ft.Icons.HISTORY, on_click=show_recent, col={"xs": 6, "md": 12}),
+            ft.TextButton("Shared with Me", icon=ft.Icons.PEOPLE, on_click=show_shared, col={"xs": 6, "md": 12}),
+            ft.Container(content=import_actions, col={"xs": 12}),
+            ft.Container(content=status_text, col={"xs": 12}),
+        ], spacing=4, run_spacing=4),
+        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+        padding=12,
+        col={"xs": 12, "md": 4, "lg": 3},
+    )
 
-    page.add(ft.Row([sidebar, ft.Container(content=ft.Column([
-        ft.Row([page_heading, ft.Row([
+    main_content = ft.Container(
+        content=ft.Column([
+            page_heading,
             course_actions,
-        ])], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-        course_form, reviewer_maker_panel, quiz_maker_panel,
-        ft.Divider(height=20, color=ft.Colors.TRANSPARENT), course_grid,
-    ]), expand=True, padding=30)], expand=True, spacing=0))
+            course_form,
+            reviewer_maker_panel,
+            quiz_maker_panel,
+            course_grid,
+        ], expand=True, spacing=16),
+        expand=True,
+        padding=16,
+        col={"xs": 12, "md": 8, "lg": 9},
+    )
+
+    page.add(ft.ResponsiveRow(
+        [sidebar, main_content],
+        columns=12,
+        spacing=0,
+        run_spacing=8,
+        expand=True,
+    ))
     refresh_courses()
 
 

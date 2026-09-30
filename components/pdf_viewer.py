@@ -37,16 +37,14 @@ def main(page: ft.Page):
 	page.title = "Reviewer Studio"
 	page.theme_mode = ft.ThemeMode.LIGHT
 	page.bgcolor = ft.Colors.GREY_200
-	page.window.width = 1200
-	page.window.height = 800
-	page.padding = 0
+	page.padding = 12
 
 	document = load_review_document(file_path)
 	status = ft.Text("Ready to review.", color=ft.Colors.GREY_400)
 	title_field = ft.TextField(value=document.title, label="Reviewer title", expand=True)
 	reviewers_dir = Path(__file__).parent.parent / "assets" / "reviewers"
 	reviewer_path = Path(file_path).with_suffix(".revx") if file_path and Path(file_path).suffix.lower() == ".pdf" else Path(file_path) if file_path else reviewers_dir / "Untitled reviewer.revx"
-	content_area = ft.Column(spacing=10, height=620, width=860, scroll=ft.ScrollMode.AUTO, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+	content_area = ft.Column(spacing=10, expand=True, scroll=ft.ScrollMode.AUTO, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
 	highlighter_mode = ft.Ref[ft.Switch]()
 	edit_mode = ft.Ref[ft.Switch]()
 	content_toolbar = ft.Ref[ft.Row]()
@@ -223,8 +221,8 @@ def main(page: ft.Page):
 				document_lines.append(text_block)
 			paper = ft.Container(
 				content=ft.Column(document_lines, spacing=10),
-				width=760,
-				padding=ft.Padding.all(44),
+				col={"xs": 12, "md": 10, "lg": 8},
+				padding=ft.Padding.all(20),
 				bgcolor=ft.Colors.WHITE,
 				border_radius=8,
 				border=ft.Border.all(1, ft.Colors.GREY_300),
@@ -235,7 +233,12 @@ def main(page: ft.Page):
 					spread_radius=0,
 				),
 			)
-			content_area.controls.append(ft.Container(content=paper, alignment=ft.Alignment(0.5, 0.5), padding=ft.Padding.only(top=8, bottom=8)))
+			content_area.controls.append(ft.ResponsiveRow(
+				[paper],
+				columns=12,
+				alignment=ft.MainAxisAlignment.CENTER,
+				run_spacing=8,
+			))
 		
 		content_area.update()
 		page.update()
@@ -324,18 +327,17 @@ def main(page: ft.Page):
 			document = empty_document(file_path)
 			title_field.value = document.title
 
-	toolbar = ft.Row([
-		title_field,
-		ft.Switch(label="Edit content", value=True, ref=edit_mode, on_change=lambda _: render_content()),
-		ft.Switch(label="Highlighter", value=False, ref=highlighter_mode),
-		ft.FilledButton("Save reviewer", icon=ft.Icons.SAVE, on_click=save_reviewer_file),
-		ft.TextButton("Reload", icon=ft.Icons.REFRESH, on_click=load_from_disk),
-	], spacing=12, expand=True, wrap=True)
+	toolbar = ft.ResponsiveRow([
+		ft.Container(content=title_field, col={"xs": 12, "md": 6}),
+		ft.Container(content=ft.Switch(label="Edit content", value=True, ref=edit_mode, on_change=lambda _: render_content()), col={"xs": 6, "sm": 4, "md": 2}),
+		ft.Container(content=ft.Switch(label="Highlighter", value=False, ref=highlighter_mode), col={"xs": 6, "sm": 4, "md": 2}),
+		ft.Container(content=ft.FilledButton("Save reviewer", icon=ft.Icons.SAVE, on_click=save_reviewer_file), col={"xs": 6, "sm": 4, "md": 1}),
+		ft.Container(content=ft.TextButton("Reload", icon=ft.Icons.REFRESH, on_click=load_from_disk), col={"xs": 6, "sm": 4, "md": 1}),
+	], spacing=8, run_spacing=8)
 
 	content_panel = ft.Container(
 		content=content_area,
-		height=620,
-		width=900,
+		expand=True,
 		bgcolor=ft.Colors.GREY_200,
 		padding=8,
 		border_radius=12,
@@ -350,8 +352,7 @@ def main(page: ft.Page):
 			ft.Divider(color=ft.Colors.GREY_300),
 			content_panel,
 		],
-		height=720,
-		width=1160,
+		expand=True,
 		spacing=12,
 		horizontal_alignment=ft.CrossAxisAlignment.CENTER,
 	)

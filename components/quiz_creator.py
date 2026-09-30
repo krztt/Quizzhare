@@ -15,9 +15,7 @@ def main(page: ft.Page):
     course_id = int(sys.argv[1])
     page.title = "Create Quiz"
     page.theme_mode = ft.ThemeMode.DARK
-    page.window.width = 900
-    page.window.height = 760
-    page.padding = 24
+    page.padding = 16
 
     title_field = ft.TextField(label="Quiz title", autofocus=True)
     question_rows = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
@@ -32,14 +30,17 @@ def main(page: ft.Page):
                 ft.dropdown.Option("multiple_choice", "Multiple choice"),
                 ft.dropdown.Option("identification", "Identification"),
             ],
-            width=180,
         )
         option_fields = [
             ft.TextField(label=f"Option {index}", expand=True)
             for index in range(1, 5)
         ]
-        options_row = ft.Row(option_fields)
+        options_row = ft.ResponsiveRow([
+            ft.Container(content=option_field, col={"xs": 12, "sm": 6, "lg": 3})
+            for option_field in option_fields
+        ], spacing=8, run_spacing=8)
         answer_field = ft.TextField(label="Correct answer", expand=True)
+        delete_button = ft.IconButton(ft.Icons.DELETE, tooltip="Remove question")
 
         def change_type(_):
             options_row.visible = type_field.value == "multiple_choice"
@@ -51,11 +52,11 @@ def main(page: ft.Page):
         type_field.on_select = change_type
         row = ft.Container(
             content=ft.Column([
-                ft.Row([
-                    type_field,
-                    question_field,
-                    ft.IconButton(ft.Icons.DELETE, tooltip="Remove question"),
-                ]),
+                ft.ResponsiveRow([
+                    ft.Container(content=type_field, col={"xs": 12, "sm": 4}),
+                    ft.Container(content=question_field, col={"xs": 10, "sm": 7}),
+                    ft.Container(content=delete_button, col={"xs": 2, "sm": 1}),
+                ], spacing=8, run_spacing=8),
                 options_row,
                 answer_field,
             ], spacing=8),
@@ -68,7 +69,7 @@ def main(page: ft.Page):
             question_rows.controls.remove(row)
             page.update()
 
-        row.content.controls[0].controls[-1].on_click = remove_row
+        delete_button.on_click = remove_row
         question_rows.controls.append(row)
         page.update()
 
@@ -77,16 +78,16 @@ def main(page: ft.Page):
         questions = []
         for row in question_rows.controls:
             fields = row.content.controls
-            type_field = fields[0].controls[0]
-            question_field = fields[0].controls[1]
+            type_field = fields[0].controls[0].content
+            question_field = fields[0].controls[1].content
             options_row = fields[1]
             answer_field = fields[2]
             question = (question_field.value or "").strip()
             answer = (answer_field.value or "").strip()
             options = [
-                (option_field.value or "").strip()
-                for option_field in options_row.controls
-                if (option_field.value or "").strip()
+                (option_container.content.value or "").strip()
+                for option_container in options_row.controls
+                if (option_container.content.value or "").strip()
             ]
             if not question or not answer:
                 status_text.value = "Every question needs text and an answer."
@@ -123,14 +124,14 @@ def main(page: ft.Page):
         ft.Row([
             ft.Text("Questions", size=18, weight=ft.FontWeight.BOLD),
             ft.TextButton("Add question", icon=ft.Icons.ADD, on_click=add_question_row),
-        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
         question_rows,
         status_text,
         ft.Row([
             ft.FilledButton("Save Quiz", icon=ft.Icons.SAVE, on_click=save_quiz),
             ft.TextButton("Cancel", on_click=lambda _: page.window.close()),
-        ]),
-    ], expand=True, spacing=12))
+        ], wrap=True),
+    ], expand=True, spacing=12, scroll=ft.ScrollMode.AUTO))
 
 
 if __name__ == "__main__":

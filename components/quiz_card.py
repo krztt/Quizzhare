@@ -7,9 +7,7 @@ import flet as ft
 def main(page: ft.Page):
 	page.title = "Quiz"
 	page.theme_mode = ft.ThemeMode.DARK
-	page.window.width = 760
-	page.window.height = 700
-	page.padding = 28
+	page.padding = 16
 
 	try:
 		with open(sys.argv[1], encoding="utf-8") as quiz_file:
@@ -22,7 +20,7 @@ def main(page: ft.Page):
 	current = [0]
 	submitted = [False]
 	result = ft.Text()
-	question_area = ft.Column(spacing=14)
+	question_area = ft.Column(spacing=14, expand=True)
 
 	def render_question():
 		submitted[0] = False
@@ -40,7 +38,7 @@ def main(page: ft.Page):
 		)
 		question_area.controls = [
 			ft.Text(f"Question {current[0] + 1} of {len(quiz['questions'])}", color=ft.Colors.GREY_400),
-			ft.Text(question["question"], size=22, weight=ft.FontWeight.BOLD),
+			ft.Text(question["question"], size=20, weight=ft.FontWeight.BOLD),
 			answer_control,
 			submit_button,
 			result,
@@ -76,10 +74,10 @@ def main(page: ft.Page):
 		render_question()
 
 	page.add(ft.Column([
-		ft.Text(quiz.get("title", "Quiz"), size=28, weight=ft.FontWeight.BOLD),
+		ft.Text(quiz.get("title", "Quiz"), size=24, weight=ft.FontWeight.BOLD),
 		ft.Divider(),
 		question_area,
-	], expand=True))
+	], expand=True, spacing=16, scroll=ft.ScrollMode.AUTO))
 	render_question()
 
 
