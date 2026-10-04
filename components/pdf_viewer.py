@@ -32,13 +32,7 @@ def load_review_document(file_path: str, fallback_title: str | None = None) -> P
 	return empty_document(fallback_title or "")
 
 
-def main(page: ft.Page):
-	file_path = sys.argv[1] if len(sys.argv) > 1 else ""
-	page.title = "Reviewer Studio"
-	page.theme_mode = ft.ThemeMode.LIGHT
-	page.bgcolor = ft.Colors.GREY_200
-	page.padding = 12
-
+def build_view(page: ft.Page, file_path: str = "", on_close=None) -> ft.Control:
 	document = load_review_document(file_path)
 	status = ft.Text("Ready to review.", color=ft.Colors.GREY_400)
 	title_field = ft.TextField(value=document.title, label="Reviewer title", expand=True)
@@ -240,7 +234,6 @@ def main(page: ft.Page):
 				run_spacing=8,
 			))
 		
-		content_area.update()
 		page.update()
 
 	def update_heading(section: DocumentSection, heading: str):
@@ -344,9 +337,13 @@ def main(page: ft.Page):
 		alignment=ft.Alignment(0.5, 0.5),
 	)
 
+	heading_controls = []
+	if on_close:
+		heading_controls.append(ft.IconButton(ft.Icons.ARROW_BACK, tooltip="Back", on_click=on_close))
+	heading_controls.append(ft.Text("Document Reviewer", size=26, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_900))
 	main_layout = ft.Column(
 		[
-			ft.Text("Document Reviewer", size=26, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_900),
+			ft.Row(heading_controls, spacing=8, wrap=True),
 			toolbar,
 			status,
 			ft.Divider(color=ft.Colors.GREY_300),
@@ -357,10 +354,18 @@ def main(page: ft.Page):
 		horizontal_alignment=ft.CrossAxisAlignment.CENTER,
 	)
 	
-	page.add(main_layout)
-	page.update()
-	content_area.update()
 	render_content()
+	return main_layout
+
+
+def main(page: ft.Page):
+	file_path = sys.argv[1] if len(sys.argv) > 1 else ""
+	page.title = "Reviewer Studio"
+	page.theme_mode = ft.ThemeMode.LIGHT
+	page.bgcolor = ft.Colors.GREY_200
+	page.padding = 12
+	page.add(build_view(page, file_path, lambda _: page.window.close()))
+	page.update()
 
 
 if __name__ == "__main__":

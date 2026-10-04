@@ -1,6 +1,17 @@
 import sqlite3
+from contextlib import contextmanager
 
 DB_PATH = "local_reviewer.db"
+
+
+@contextmanager
+def _connection():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def initialize_database():
@@ -34,7 +45,7 @@ def initialize_database():
 
 
 def create_course(course_name):
-    with sqlite3.connect(DB_PATH) as conn:
+    with _connection() as conn:
         cursor = conn.execute(
             "INSERT INTO courses (course_name) VALUES (?)",
             (course_name.strip(),),
@@ -43,19 +54,50 @@ def create_course(course_name):
 
 
 def get_courses():
-    with sqlite3.connect(DB_PATH) as conn:
+    with _connection() as conn:
         return conn.execute(
             "SELECT id, course_name, created_at FROM courses ORDER BY course_name"
         ).fetchall()
 
 
+def rename_course(course_id, course_name):
+    with _connection() as conn:
+        cursor = conn.execute(
+            "UPDATE courses SET course_name = ? WHERE id = ?",
+            (course_name.strip(), course_id),
+        )
+        return cursor.rowcount > 0
+
+
+def delete_course(course_id):
+    with _connection() as conn:
+        conn.execute("DELETE FROM materials WHERE course_id = ?", (course_id,))
+        cursor = conn.execute("DELETE FROM courses WHERE id = ?", (course_id,))
+        return cursor.rowcount > 0
+
+
 def add_material(course_id, title, material_type, file_path):
-    with sqlite3.connect(DB_PATH) as conn:
+    with _connection() as conn:
         conn.execute(
             "INSERT INTO materials (course_id, title, material_type, file_path) "
             "VALUES (?, ?, ?, ?)",
             (course_id, title, material_type, file_path),
         )
+
+
+def update_material(material_id, title):
+    with _connection() as conn:
+        cursor = conn.execute(
+            "UPDATE materials SET title = ? WHERE id = ?",
+            (title.strip(), material_id),
+        )
+        return cursor.rowcount > 0
+
+
+def delete_material(material_id):
+    with _connection() as conn:
+        cursor = conn.execute("DELETE FROM materials WHERE id = ?", (material_id,))
+        return cursor.rowcount > 0
 
 
 def get_materials(course_id=None):
@@ -65,7 +107,7 @@ def get_materials(course_id=None):
         query += " WHERE course_id = ?"
         params = (course_id,)
     query += " ORDER BY id DESC"
-    with sqlite3.connect(DB_PATH) as conn:
+    with _connection() as conn:
         return conn.execute(query, params).fetchall()
 
 if __name__ == "__main__":

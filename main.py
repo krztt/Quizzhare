@@ -1,20 +1,26 @@
 import json
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 import flet as ft
 
-from database import add_material, create_course, get_courses, get_materials, initialize_database
+from database import (
+    add_material,
+    create_course,
+    delete_course,
+    delete_material,
+    get_courses,
+    get_materials,
+    initialize_database,
+    rename_course,
+    update_material,
+)
 from file_handler import DocumentSection, ParsedDocument, parse_document, parse_quiz, save_reviewer
 
 
 def main(page: ft.Page):
     page.title = "Quizzhare"
     page.theme_mode = ft.ThemeMode.DARK
-    page.window.width = 1200
-    page.window.height = 800
     page.padding = 0
     initialize_database()
 
@@ -25,17 +31,153 @@ def main(page: ft.Page):
     course_grid = ft.GridView(max_extent=280, child_aspect_ratio=1.45, spacing=12, run_spacing=12, expand=True)
     file_picker = ft.FilePicker()
 
+    def open_rename_dialog(dialog_title, current_title, on_save):
+        title_field = ft.TextField(label="Name", value=current_title, autofocus=True)
+
+        def save_title(_):
+            title = (title_field.value or "").strip()
+            if not title:
+                status_text.value = "Enter a name."
+                page.update()
+                return
+            if on_save(title):
+                page.pop_dialog()
+                page.update()
+
+        page.show_dialog(ft.AlertDialog(
+            modal=True,
+            title=ft.Text(dialog_title),
+            content=title_field,
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda _: page.pop_dialog()),
+                ft.FilledButton("Save", icon=ft.Icons.SAVE, on_click=save_title),
+            ],
+        ))
+
+    def confirm_delete(dialog_title, message, on_confirm):
+        def delete_record(_):
+            page.pop_dialog()
+            on_confirm()
+
+        page.show_dialog(ft.AlertDialog(
+            modal=True,
+            title=ft.Text(dialog_title),
+            content=ft.Text(message),
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda _: page.pop_dialog()),
+                ft.FilledButton("Delete", icon=ft.Icons.DELETE, on_click=delete_record),
+            ],
+        ))
+
+    def refresh_materials():
+        if active_course_id[0] is not None:
+            select_course(active_course_id[0], page_heading.value)
+        else:
+            materials = get_materials()
+            course_grid.controls = [material_tile(material) for material in materials]
+            if not course_grid.controls:
+                course_grid.controls = [ft.Text("No imported materials yet.", color=ft.Colors.GREY_400)]
+            page.update()
+
+    def edit_material_title(material):
+        def save(title):
+            if update_material(material[0], title):
+                status_text.value = f"Renamed material to {title}."
+                refresh_materials()
+                return True
+            status_text.value = "This material no longer exists."
+            page.update()
+            return False
+
+        open_rename_dialog("Rename material", material[2], save)
+
+    def remove_material(material):
+        def remove():
+            if delete_material(material[0]):
+                status_text.value = f"Deleted material: {material[2]}"
+            else:
+                status_text.value = "This material no longer exists."
+            refresh_materials()
+
+        confirm_delete(
+            "Delete material?",
+            f"Remove {material[2]} from Quizzhare? The source file will be kept.",
+            remove,
+        )
+
     def launch_viewer(file_path, material_type):
-        module = "components.quiz_card" if material_type == "quiz" else "components.pdf_viewer"
-        subprocess.Popen([sys.executable, "-m", module, file_path], cwd=Path(__file__).parent)
-        status_text.value = "Opened material in a separate window."
+        def return_to_main(_=None):
+            page.controls.clear()
+            page.title = "Quizzhare"
+            page.theme_mode = ft.ThemeMode.DARK
+            page.padding = 0
+            page.add(app_layout)
+            page.update()
+
+        if material_type == "quiz":
+            from components.quiz_card import build_view
+
+            page.theme_mode = ft.ThemeMode.DARK
+            viewer = build_view(page, file_path, return_to_main)
+        else:
+            from components.pdf_viewer import build_view
+
+            page.theme_mode = ft.ThemeMode.LIGHT
+            viewer = build_view(page, file_path, return_to_main)
+
+        page.controls.clear()
+        page.title = "Quizzhare"
+        page.padding = 12
+        page.add(ft.Container(content=viewer, expand=True))
+        status_text.value = "Opened material."
         page.update()
 
     def material_tile(material):
         return ft.ListTile(
             leading=ft.Icon(ft.Icons.QUIZ if material[3] == "quiz" else ft.Icons.DESCRIPTION),
             title=ft.Text(material[2]), subtitle=ft.Text(material[3].upper()),
+            trailing=ft.PopupMenuButton(items=[
+                ft.PopupMenuItem(text="Rename", on_click=lambda _, item=material: edit_material_title(item)),
+                ft.PopupMenuItem(text="Delete", icon=ft.Icons.DELETE, on_click=lambda _, item=material: remove_material(item)),
+            ]),
             on_click=lambda _, path=material[4], kind=material[3]: launch_viewer(path, kind),
+        )
+
+    def edit_course_title(course_id, course_title):
+        def save(title):
+            if any(course[0] != course_id and course[1].casefold() == title.casefold() for course in get_courses()):
+                status_text.value = "A course with that name already exists."
+                page.update()
+                return False
+            if rename_course(course_id, title):
+                status_text.value = f"Renamed course to {title}."
+                if active_course_id[0] == course_id:
+                    page_heading.value = title
+                refresh_courses()
+                return True
+            status_text.value = "This course no longer exists."
+            page.update()
+            return False
+
+        open_rename_dialog("Rename course", course_title, save)
+
+    def remove_course(course_id, course_title):
+        def remove():
+            if delete_course(course_id):
+                status_text.value = f"Deleted course: {course_title}. Source files were kept."
+                if active_course_id[0] == course_id:
+                    active_course_id[0] = None
+                    import_actions.visible = False
+                    course_actions.visible = False
+                    page_heading.value = "My Courses"
+            else:
+                status_text.value = "This course no longer exists."
+            refresh_courses()
+
+        confirm_delete(
+            "Delete course?",
+            f"Delete {course_title} and its material records? Source files will be kept.",
+            remove,
         )
 
     def select_course(course_id, course_title):
@@ -55,8 +197,14 @@ def main(page: ft.Page):
     def create_course_card(course_id, course_title):
         return ft.Container(
             content=ft.Column([
-                ft.Icon(ft.Icons.FOLDER, color=ft.Colors.WHITE, size=30),
-                ft.Text(course_title, size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                ft.Row([
+                    ft.Icon(ft.Icons.FOLDER, color=ft.Colors.WHITE, size=30),
+                    ft.PopupMenuButton(items=[
+                        ft.PopupMenuItem(text="Rename", on_click=lambda _, cid=course_id, title=course_title: edit_course_title(cid, title)),
+                        ft.PopupMenuItem(text="Delete", icon=ft.Icons.DELETE, on_click=lambda _, cid=course_id, title=course_title: remove_course(cid, title)),
+                    ]),
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Text(course_title, size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
                 ft.Text(f"{len(get_materials(course_id))} material(s)", size=12, color=ft.Colors.WHITE70),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             height=150, bgcolor=ft.Colors.BLUE_700, border_radius=8, padding=12, ink=True, expand=True,
@@ -463,13 +611,14 @@ def main(page: ft.Page):
         col={"xs": 12, "md": 8, "lg": 9},
     )
 
-    page.add(ft.ResponsiveRow(
+    app_layout = ft.ResponsiveRow(
         [sidebar, main_content],
         columns=12,
         spacing=0,
         run_spacing=8,
         expand=True,
-    ))
+    )
+    page.add(app_layout)
     refresh_courses()
 
 
