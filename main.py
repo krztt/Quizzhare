@@ -137,8 +137,8 @@ def main(page: ft.Page):
             leading=ft.Icon(ft.Icons.QUIZ if material[3] == "quiz" else ft.Icons.DESCRIPTION),
             title=ft.Text(material[2]), subtitle=ft.Text(material[3].upper()),
             trailing=ft.PopupMenuButton(items=[
-                ft.PopupMenuItem(text="Rename", on_click=lambda _, item=material: edit_material_title(item)),
-                ft.PopupMenuItem(text="Delete", icon=ft.Icons.DELETE, on_click=lambda _, item=material: remove_material(item)),
+                ft.PopupMenuItem(content="Rename", on_click=lambda _, item=material: edit_material_title(item)),
+                ft.PopupMenuItem(content="Delete", icon=ft.Icons.DELETE, on_click=lambda _, item=material: remove_material(item)),
             ]),
             on_click=lambda _, path=material[4], kind=material[3]: launch_viewer(path, kind),
         )
@@ -200,8 +200,8 @@ def main(page: ft.Page):
                 ft.Row([
                     ft.Icon(ft.Icons.FOLDER, color=ft.Colors.WHITE, size=30),
                     ft.PopupMenuButton(items=[
-                        ft.PopupMenuItem(text="Rename", on_click=lambda _, cid=course_id, title=course_title: edit_course_title(cid, title)),
-                        ft.PopupMenuItem(text="Delete", icon=ft.Icons.DELETE, on_click=lambda _, cid=course_id, title=course_title: remove_course(cid, title)),
+                        ft.PopupMenuItem(content="Rename", on_click=lambda _, cid=course_id, title=course_title: edit_course_title(cid, title)),
+                        ft.PopupMenuItem(content="Delete", icon=ft.Icons.DELETE, on_click=lambda _, cid=course_id, title=course_title: remove_course(cid, title)),
                     ]),
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 ft.Text(course_title, size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
